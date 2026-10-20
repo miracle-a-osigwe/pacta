@@ -9,24 +9,32 @@ const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
-export function isPayPalConfigured(): boolean {
-  return Boolean(PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET && PAYPAL_CLIENT_SECRET !== 'your_paypal_sandbox_client_secret_here');
+export function isPayPalConfigured(customClientId?: string, customClientSecret?: string): boolean {
+  const cid = customClientId || PAYPAL_CLIENT_ID;
+  const sec = customClientSecret || PAYPAL_CLIENT_SECRET;
+  return Boolean(cid && sec && sec !== 'your_paypal_sandbox_client_secret_here');
 }
 
 /**
  * Obtain OAuth 2.0 Bearer Access Token using Basic Auth
  */
-export async function getPayPalAccessToken(): Promise<string> {
-  if (!isPayPalConfigured()) {
+export async function getPayPalAccessToken(creds?: {
+  clientId?: string;
+  clientSecret?: string;
+}): Promise<string> {
+  const cid = creds?.clientId || PAYPAL_CLIENT_ID;
+  const sec = creds?.clientSecret || PAYPAL_CLIENT_SECRET;
+
+  if (!isPayPalConfigured(cid, sec)) {
     return 'mock-sandbox-token';
   }
 
-  // Check cache (with 60s buffer)
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60000) {
+  // Check cache if standard env credentials
+  if (!creds?.clientId && cachedToken && Date.now() < cachedToken.expiresAt - 60000) {
     return cachedToken.token;
   }
 
-  const authString = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
+  const authString = Buffer.from(`${cid}:${sec}`).toString('base64');
   
   const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
     method: 'POST',
@@ -44,12 +52,14 @@ export async function getPayPalAccessToken(): Promise<string> {
   }
 
   const data = await response.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in * 1000),
-  };
+  if (!creds?.clientId) {
+    cachedToken = {
+      token: data.access_token,
+      expiresAt: Date.now() + (data.expires_in * 1000),
+    };
+  }
 
-  return cachedToken.token;
+  return data.access_token;
 }
 
 /**
@@ -60,15 +70,20 @@ export async function createPayPalOrder(params: {
   currency?: string;
   referenceId: string;
   description: string;
+  customClientId?: string;
+  customClientSecret?: string;
 }): Promise<{ orderId: string; approvalUrl?: string }> {
-  const { amount, currency = 'USD', referenceId, description } = params;
+  const { amount, currency = 'USD', referenceId, description, customClientId, customClientSecret } = params;
 
-  if (!isPayPalConfigured()) {
+  if (!isPayPalConfigured(customClientId, customClientSecret)) {
     const mockOrderId = `SANDBOX-ORDER-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     return { orderId: mockOrderId };
   }
 
-  const accessToken = await getPayPalAccessToken();
+  const accessToken = await getPayPalAccessToken({
+    clientId: customClientId,
+    clientSecret: customClientSecret,
+  });
 
   const response = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
     method: 'POST',
@@ -115,12 +130,15 @@ export async function createPayPalOrder(params: {
 /**
  * Capture an Approved PayPal Order
  */
-export async function capturePayPalOrder(orderId: string): Promise<{
+export async function capturePayPalOrder(
+  orderId: string,
+  customCreds?: { clientId?: string; clientSecret?: string }
+): Promise<{
   id: string;
   status: string;
   captureId?: string;
 }> {
-  if (!isPayPalConfigured() || orderId.startsWith('SANDBOX-ORDER-')) {
+  if (!isPayPalConfigured(customCreds?.clientId, customCreds?.clientSecret) || orderId.startsWith('SANDBOX-ORDER-')) {
     return {
       id: orderId,
       status: 'COMPLETED',
@@ -128,7 +146,7 @@ export async function capturePayPalOrder(orderId: string): Promise<{
     };
   }
 
-  const accessToken = await getPayPalAccessToken();
+  const accessToken = await getPayPalAccessToken(customCreds);
 
   const response = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders/${orderId}/capture`, {
     method: 'POST',
@@ -163,20 +181,25 @@ export async function createPayPalPayout(params: {
   currency?: string;
   note: string;
   senderItemId: string;
+  customClientId?: string;
+  customClientSecret?: string;
 }): Promise<{
   payoutBatchId: string;
   batchStatus: string;
 }> {
-  const { receiverEmail, amount, currency = 'USD', note, senderItemId } = params;
+  const { receiverEmail, amount, currency = 'USD', note, senderItemId, customClientId, customClientSecret } = params;
 
-  if (!isPayPalConfigured()) {
+  if (!isPayPalConfigured(customClientId, customClientSecret)) {
     return {
       payoutBatchId: `SANDBOX-BATCH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       batchStatus: 'SUCCESS',
     };
   }
 
-  const accessToken = await getPayPalAccessToken();
+  const accessToken = await getPayPalAccessToken({
+    clientId: customClientId,
+    clientSecret: customClientSecret,
+  });
 
   const batchHeader = {
     sender_batch_header: {

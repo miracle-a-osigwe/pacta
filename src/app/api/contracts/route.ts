@@ -22,8 +22,14 @@ export async function POST(req: NextRequest) {
       providerEmail = 'provider.agent@sandbox.paypal.com',
     } = body;
 
-    // Use Gemini to plan and negotiate milestones
-    const plan = await planAndNegotiateMilestones(objective, Number(totalBudget), category);
+    const geminiApiKey = req.headers.get('x-gemini-key') || body.geminiApiKey || undefined;
+    const tavilyApiKey = req.headers.get('x-tavily-key') || body.tavilyApiKey || undefined;
+
+    // Use Gemini to plan and negotiate milestones (enriched with Tavily market intelligence)
+    const plan = await planAndNegotiateMilestones(objective, Number(totalBudget), category, {
+      geminiApiKey,
+      tavilyApiKey,
+    });
 
     const contractId = `contract-${Date.now().toString(36)}`;
     const newContract: Contract = {

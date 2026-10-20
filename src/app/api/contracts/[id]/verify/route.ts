@@ -27,11 +27,16 @@ export async function POST(
       milestone.submissionContent ||
       'Production deliverables completed and verified against contract acceptance criteria. Full test suite passing with zero defects.';
 
+    const customGeminiKey = req.headers.get('x-gemini-key') || undefined;
+    const customClientId = req.headers.get('x-paypal-client-id') || undefined;
+    const customClientSecret = req.headers.get('x-paypal-client-secret') || undefined;
+
     // 1. Autonomous AI Auditor (Gemini AI Judge) inspects deliverable
     const auditResult = await auditDeliverableSubmission({
       criteria: milestone.deliverableCriteria,
       milestoneTitle: milestone.title,
       submissionContent: submission,
+      customGeminiApiKey: customGeminiKey,
     });
 
     let payoutResult = null;
@@ -45,6 +50,8 @@ export async function POST(
         currency: milestone.currency,
         note: `Pacta: Payout for ${milestone.title}`,
         senderItemId: `${id}_${milestoneId}`,
+        customClientId,
+        customClientSecret,
       });
 
       newStatus = 'PAYOUT_COMPLETED';

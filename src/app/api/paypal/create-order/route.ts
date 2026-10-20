@@ -17,11 +17,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Milestone not found' }, { status: 404 });
     }
 
+    const customClientId = req.headers.get('x-paypal-client-id') || undefined;
+    const customClientSecret = req.headers.get('x-paypal-client-secret') || undefined;
+
     const orderResult = await createPayPalOrder({
       amount: milestone.amount,
       currency: milestone.currency,
       referenceId: `${contractId}_${milestoneId}`,
       description: `Pacta Escrow: ${milestone.title}`,
+      customClientId,
+      customClientSecret,
     });
 
     store.updateMilestone(contractId, milestoneId, {

@@ -13,26 +13,89 @@ export function isGeminiConfigured(): boolean {
 }
 
 /**
+ * Pluggable Tavily Search for Live Market Rate & Deliverable Benchmarking
+ */
+export async function searchTavilyMarketRates(
+  query: string,
+  apiKey?: string
+): Promise<string | null> {
+  const tavilyKey = apiKey || process.env.TAVILY_API_KEY;
+  if (!tavilyKey || tavilyKey === 'your_tavily_api_key_here') {
+    return null;
+  }
+
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query: `${query} standard freelance rate milestone deliverables acceptance criteria`,
+        search_depth: 'basic',
+        max_results: 3,
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn('Tavily search response not ok:', res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    if (data.results && Array.isArray(data.results)) {
+      return data.results.map((r: { title: string; content: string }) => `• ${r.title}: ${r.content}`).join('\n');
+    }
+  } catch (err) {
+    console.warn('Tavily search failed, continuing with heuristic benchmarks:', err);
+  }
+  return null;
+}
+
+/**
  * Planner & Negotiator Agent
- * Decomposes an economic objective into milestone contracts with escrow amounts and acceptance criteria
+ * Decomposes an economic objective into milestone contracts with escrow amounts and acceptance criteria.
+ * Enriched with Tavily real-time rate discovery when key is provided.
  */
 export async function planAndNegotiateMilestones(
   objective: string,
   totalBudget: number,
-  category: string
+  category: string,
+  options?: {
+    geminiApiKey?: string;
+    tavilyApiKey?: string;
+  }
 ): Promise<{
   title: string;
   milestones: Omit<Milestone, 'id' | 'status' | 'updatedAt'>[];
   negotiationSummary: string;
+  marketIntelligence?: string;
 }> {
-  if (aiClient) {
+  const effectiveGeminiKey = options?.geminiApiKey || process.env.GEMINI_API_KEY || '';
+  const client =
+    effectiveGeminiKey && effectiveGeminiKey !== 'your_gemini_api_key_here'
+      ? new GoogleGenAI({ apiKey: effectiveGeminiKey })
+      : aiClient;
+
+  // Attempt live Tavily web intelligence search
+  const marketIntelligence = await searchTavilyMarketRates(
+    `${category} ${objective}`,
+    options?.tavilyApiKey
+  );
+
+  if (client) {
     try {
       const prompt = `You are Pacta's Autonomous Procurement & Negotiation Agent.
 A user wants to hire autonomous agents or contractors for the following objective:
 Objective: "${objective}"
 Total Budget: $${totalBudget} USD
 Category: ${category}
-
+${
+  marketIntelligence
+    ? `\n[Live Tavily Market Intelligence Benchmarks]:\n${marketIntelligence}\n`
+    : ''
+}
 Decompose this objective into 2 to 3 sequential, verifiable milestones.
 For each milestone, provide:
 1. title: short title
@@ -55,7 +118,7 @@ Respond with strictly valid JSON in this format:
   ]
 }`;
 
-      const response = await aiClient.models.generateContent({
+      const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -66,7 +129,10 @@ Respond with strictly valid JSON in this format:
       const text = response.text?.trim() || '';
       const parsed = JSON.parse(text);
       if (parsed.milestones && Array.isArray(parsed.milestones)) {
-        return parsed;
+        return {
+          ...parsed,
+          marketIntelligence: marketIntelligence || undefined,
+        };
       }
     } catch (err) {
       console.warn('Gemini planning failed or API key invalid, falling back to heuristic planner:', err);
@@ -80,6 +146,7 @@ Respond with strictly valid JSON in this format:
   return {
     title: `${category} Execution: ${objective.slice(0, 45)}...`,
     negotiationSummary: `Autonomous buyer and provider agents agreed on a 2-phase milestone contract totaling $${totalBudget} USD. 50% initial phase, 50% final verification.`,
+    marketIntelligence: marketIntelligence || undefined,
     milestones: [
       {
         title: 'Phase 1: Architecture, Scoping & Draft Deliverable',
@@ -109,21 +176,28 @@ Respond with strictly valid JSON in this format:
 
 /**
  * Auditor Agent / AI Judge
- * Evaluates delivered work against contract criteria and scores proof-of-work
+ * Evaluates delivered work against contract criteria and scores proof-of-work.
  */
 export async function auditDeliverableSubmission(params: {
   criteria: string[];
   milestoneTitle: string;
   submissionContent: string;
+  customGeminiApiKey?: string;
 }): Promise<{
   score: number; // 0 - 100
   verdict: 'AUTOMATICALLY_APPROVED' | 'MANUAL_REVIEW' | 'REJECTED';
   feedback: string;
   criteriaAnalysis: { criterion: string; satisfied: boolean; notes: string }[];
 }> {
-  const { criteria, milestoneTitle, submissionContent } = params;
+  const { criteria, milestoneTitle, submissionContent, customGeminiApiKey } = params;
 
-  if (aiClient) {
+  const effectiveGeminiKey = customGeminiApiKey || process.env.GEMINI_API_KEY || '';
+  const client =
+    effectiveGeminiKey && effectiveGeminiKey !== 'your_gemini_api_key_here'
+      ? new GoogleGenAI({ apiKey: effectiveGeminiKey })
+      : aiClient;
+
+  if (client) {
     try {
       const prompt = `You are Pacta's Autonomous Verification Agent (AI Judge).
 You must evaluate whether the submitted deliverable satisfies the contractual milestone criteria.
@@ -153,7 +227,7 @@ Respond with strictly valid JSON:
   ]
 }`;
 
-      const response = await aiClient.models.generateContent({
+      const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {

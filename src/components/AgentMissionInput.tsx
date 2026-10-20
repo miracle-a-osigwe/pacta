@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Sparkles, Shield, Send, Loader2, ArrowRight } from 'lucide-react';
 import { Contract } from '@/types';
+import { getByokHeaders } from '@/lib/credentials';
+import { sound } from '@/lib/audio';
 
 interface AgentMissionInputProps {
   onContractCreated: (newContract: Contract) => void;
@@ -40,13 +42,17 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
     e.preventDefault();
     if (!objective.trim()) return;
 
+    sound.playClick();
     setIsLoading(true);
     setError(null);
 
     try {
       const res = await fetch('/api/contracts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getByokHeaders(),
+        },
         body: JSON.stringify({
           objective,
           category,

@@ -18,8 +18,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Milestone not found' }, { status: 404 });
     }
 
+    const customClientId = req.headers.get('x-paypal-client-id') || undefined;
+    const customClientSecret = req.headers.get('x-paypal-client-secret') || undefined;
+
     // Capture payment from PayPal
-    const captureResult = await capturePayPalOrder(orderId);
+    const captureResult = await capturePayPalOrder(orderId, {
+      clientId: customClientId,
+      clientSecret: customClientSecret,
+    });
 
     // Update milestone state to ESCROW_FUNDED
     store.updateMilestone(contractId, milestoneId, {
