@@ -1,4 +1,6 @@
 import { Contract, LedgerTransaction, TelemetryStats } from '@/types';
+import { PRESET_SCENARIOS, ScenarioTemplate } from '@/lib/scenarios';
+export { PRESET_SCENARIOS, type ScenarioTemplate };
 
 // Pre-seeded initial data for instant rich showcase
 const INITIAL_CONTRACTS: Contract[] = [
@@ -129,9 +131,12 @@ const INITIAL_CONTRACTS: Contract[] = [
   },
 ];
 
+// Seed origin tag — used by the grid to visually distinguish pre-seeded rows from live audit rows
+export const SEED_TX_IDS = new Set(['tx-seed-001', 'tx-seed-002', 'tx-seed-003', 'tx-seed-004']);
+
 const INITIAL_TRANSACTIONS: LedgerTransaction[] = [
   {
-    id: 'tx-001',
+    id: 'tx-seed-001',
     timestamp: new Date(Date.now() - 3600000 * 40).toISOString(),
     contractId: 'contract-sec-01',
     contractTitle: 'Full-Stack Smart Contract & API Security Audit',
@@ -143,11 +148,11 @@ const INITIAL_TRANSACTIONS: LedgerTransaction[] = [
     status: 'SUCCESS',
     payer: 'dao-treasury@pacta.sandbox.com',
     payee: 'Pacta Escrow Vault',
-    paypalReferenceId: 'PAYPAL-ORD-88219412',
-    notes: 'Buyer funded milestone into PayPal Escrow Vault.',
+    paypalReferenceId: 'DEMO-ORD-88219412',
+    notes: '[DEMO SEED] Pre-loaded example. Run an audit cycle above to add live rows.',
   },
   {
-    id: 'tx-002',
+    id: 'tx-seed-002',
     timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
     contractId: 'contract-sec-01',
     contractTitle: 'Full-Stack Smart Contract & API Security Audit',
@@ -159,13 +164,13 @@ const INITIAL_TRANSACTIONS: LedgerTransaction[] = [
     status: 'SUCCESS',
     payer: 'Pacta Escrow Vault',
     payee: 'sentinel.sec.bot@sandbox.paypal.com',
-    paypalReferenceId: 'PAYPAL-PAYOUT-99128471',
+    paypalReferenceId: 'DEMO-PAYOUT-99128471',
     verificationScore: 94,
     auditVerdict: 'AUTOMATICALLY_APPROVED',
-    notes: 'Deliverable verified by AI Auditor (Score: 94/100). Instant PayPal Payout disbursed.',
+    notes: '[DEMO SEED] Pre-loaded example. Gemini score: 94/100. Auto-approved.',
   },
   {
-    id: 'tx-003',
+    id: 'tx-seed-003',
     timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
     contractId: 'contract-sec-01',
     contractTitle: 'Full-Stack Smart Contract & API Security Audit',
@@ -177,11 +182,11 @@ const INITIAL_TRANSACTIONS: LedgerTransaction[] = [
     status: 'HELD_IN_ESCROW',
     payer: 'dao-treasury@pacta.sandbox.com',
     payee: 'Pacta Escrow Vault',
-    paypalReferenceId: 'PAYPAL-ORD-91048201',
-    notes: 'Phase 2 funded. Funds held in escrow pending agent submission and AI verification.',
+    paypalReferenceId: 'DEMO-ORD-91048201',
+    notes: '[DEMO SEED] Pre-loaded example. Funds held pending agent submission.',
   },
   {
-    id: 'tx-004',
+    id: 'tx-seed-004',
     timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
     contractId: 'contract-loc-02',
     contractTitle: 'Japanese & German Market App Localization',
@@ -193,8 +198,8 @@ const INITIAL_TRANSACTIONS: LedgerTransaction[] = [
     status: 'HELD_IN_ESCROW',
     payer: 'procurement@globalfin.com',
     payee: 'Pacta Escrow Vault',
-    paypalReferenceId: 'PAYPAL-ORD-92019482',
-    notes: 'Escrow deposit captured. LingoMesh Agent notified to commence translation.',
+    paypalReferenceId: 'DEMO-ORD-92019482',
+    notes: '[DEMO SEED] Pre-loaded example. LingoMesh Agent notified to commence translation.',
   },
 ];
 
@@ -275,6 +280,99 @@ class PactaStore {
       automatedPayoutsCount: payoutsCount,
       disputeRatePercent: 0,
       activeContractsCount: this.contracts.filter((c) => c.status === 'ACTIVE').length,
+    };
+  }
+
+  loadScenario(presetKey: string): Contract | undefined {
+    const preset = PRESET_SCENARIOS[presetKey];
+    if (!preset) return undefined;
+
+    // Check if contract already exists
+    const existingIdx = this.contracts.findIndex((c) => c.id === preset.contract.id);
+    if (existingIdx !== -1) {
+      // Move to front
+      const [existing] = this.contracts.splice(existingIdx, 1);
+      this.contracts.unshift(existing);
+      return existing;
+    }
+
+    // Add clone of contract to front
+    const cloned = JSON.parse(JSON.stringify(preset.contract));
+    this.contracts.unshift(cloned);
+    return cloned;
+  }
+
+  simulateLiveEvent(): { transaction: LedgerTransaction; telemetry: TelemetryStats; logMessage: string } {
+    const isPayout = Math.random() > 0.45;
+    const amount = [45, 60, 75, 90, 110, 130, 150, 180][Math.floor(Math.random() * 8)];
+    const agentPool = [
+      { name: 'SlitherSec-Bot', email: 'sentinel.sec.bot@sandbox.paypal.com' },
+      { name: 'QuantumLinguist-Agent', email: 'lingomesh.payouts@sandbox.paypal.com' },
+      { name: 'Cerberus-RedTeam', email: 'cerberus.pentest@sandbox.paypal.com' },
+      { name: 'DataForge-Curator', email: 'dataforge.curator@sandbox.paypal.com' },
+      { name: 'NebulaAudit-Agent', email: 'nebula.audit@sandbox.paypal.com' },
+    ];
+    const pickedAgent = agentPool[Math.floor(Math.random() * agentPool.length)];
+    const randomHex = Math.random().toString(16).substring(2, 8).toUpperCase();
+
+    // Rotating scenario context — ties simulation events to real contract scenarios
+    const scenarioContexts = [
+      { title: 'Smart Contract AST Vulnerability Scan', category: 'Security' },
+      { title: 'Multi-Lingual ICU Localization Bundle', category: 'Localization' },
+      { title: 'OWASP Top 10 API Penetration Test', category: 'Red-Teaming' },
+      { title: 'Synthetic Dataset Deduplication & Curation', category: 'Data Science' },
+    ];
+    const ctx = scenarioContexts[Math.floor(Math.random() * scenarioContexts.length)];
+    const auditScore = Math.floor(Math.random() * 11) + 90; // 90–100
+
+    let newTx: LedgerTransaction;
+    let logMessage: string;
+
+    if (isPayout) {
+      newTx = {
+        id: `tx-live-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        contractId: 'contract-sec-01',
+        contractTitle: `${ctx.category}: ${ctx.title}`,
+        milestoneId: `ms-live-${randomHex}`,
+        milestoneTitle: 'AI-Verified Milestone — Automated Payout',
+        type: 'PAYOUT_DISBURSEMENT',
+        amount,
+        currency: 'USD',
+        status: 'SUCCESS',
+        payer: 'Pacta Escrow Vault',
+        payee: pickedAgent.email,
+        paypalReferenceId: `DEMO-PAYOUT-${randomHex}`,
+        verificationScore: auditScore,
+        auditVerdict: 'AUTOMATICALLY_APPROVED',
+        notes: `[DEMO] Gemini 3.5 Judge approved deliverable (${auditScore}/100). PayPal Payouts v1 disbursed $${amount} to ${pickedAgent.name}.`,
+      };
+      logMessage = `⚡ [DEMO] PAYPAL PAYOUTS: $${amount}.00 USD → ${pickedAgent.name} (Gemini Score: ${auditScore}%)`;
+    } else {
+      newTx = {
+        id: `tx-live-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        contractId: 'contract-sec-01',
+        contractTitle: `${ctx.category}: ${ctx.title}`,
+        milestoneId: `ms-live-${randomHex}`,
+        milestoneTitle: 'Escrow Lock — Milestone Funded',
+        type: 'ESCROW_DEPOSIT',
+        amount,
+        currency: 'USD',
+        status: 'HELD_IN_ESCROW',
+        payer: 'dao-treasury@pacta.sandbox.com',
+        payee: 'Pacta Escrow Vault',
+        paypalReferenceId: `DEMO-ORDER-${randomHex}`,
+        notes: `[DEMO] Buyer locked $${amount}.00 into PayPal Orders v2 Sandbox Vault for ${pickedAgent.name}.`,
+      };
+      logMessage = `🔒 [DEMO] PAYPAL ESCROW: Locked $${amount}.00 USD for ${ctx.category} — ${pickedAgent.name}`;
+    }
+
+    this.addTransaction(newTx);
+    return {
+      transaction: newTx,
+      telemetry: this.getTelemetry(),
+      logMessage,
     };
   }
 }

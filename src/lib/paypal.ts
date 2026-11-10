@@ -76,7 +76,7 @@ export async function createPayPalOrder(params: {
   const { amount, currency = 'USD', referenceId, description, customClientId, customClientSecret } = params;
 
   if (!isPayPalConfigured(customClientId, customClientSecret)) {
-    const mockOrderId = `SANDBOX-ORDER-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+    const mockOrderId = `DEMO-ORDER-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     return { orderId: mockOrderId };
   }
 
@@ -138,11 +138,11 @@ export async function capturePayPalOrder(
   status: string;
   captureId?: string;
 }> {
-  if (!isPayPalConfigured(customCreds?.clientId, customCreds?.clientSecret) || orderId.startsWith('SANDBOX-ORDER-')) {
+  if (!isPayPalConfigured(customCreds?.clientId, customCreds?.clientSecret) || orderId.startsWith('DEMO-ORDER-')) {
     return {
       id: orderId,
       status: 'COMPLETED',
-      captureId: `SANDBOX-CAPTURE-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      captureId: `DEMO-CAPTURE-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
     };
   }
 
@@ -191,7 +191,7 @@ export async function createPayPalPayout(params: {
 
   if (!isPayPalConfigured(customClientId, customClientSecret)) {
     return {
-      payoutBatchId: `SANDBOX-BATCH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      payoutBatchId: `DEMO-BATCH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       batchStatus: 'SUCCESS',
     };
   }

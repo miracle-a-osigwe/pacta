@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Pause, Play, Trash2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
+import { Terminal, Pause, Play, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { sound } from '@/lib/audio';
 
 interface LogPacket {
@@ -43,7 +43,7 @@ const DEFAULT_PACKETS: LogPacket[] = [
     time: '14:23:02.781',
     protocol: 'GEMINI',
     level: 'SUCCESS',
-    message: 'Gemini 2.5 AI Judge completed multimodal audit. Score: 94/100 -> AUTOMATICALLY_APPROVED.',
+    message: 'Gemini 3.5 AI Judge completed multimodal audit. Score: 94/100 -> AUTOMATICALLY_APPROVED.',
     hash: '0x112d...aa82',
   },
   {
@@ -59,7 +59,8 @@ const DEFAULT_PACKETS: LogPacket[] = [
 export default function ProtocolTicker() {
   const [logs, setLogs] = useState<LogPacket[]>(DEFAULT_PACKETS);
   const [isPaused, setIsPaused] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Collapsed by default so the workspace stays ultra-clean and uncluttered
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Background synthetic heartbeat to keep terminal feeling alive
@@ -89,7 +90,7 @@ export default function ProtocolTicker() {
         {
           protocol: 'GEMINI',
           level: 'INFO',
-          message: 'Auditor model telemetry: Temperature 0.1 | Flash 2.5 | Spec verification armed.',
+          message: 'Auditor model telemetry: Temperature 0.1 | Flash 3.5 | Spec verification armed.',
           hash: `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`,
         },
       ];
@@ -116,87 +117,114 @@ export default function ProtocolTicker() {
   const getTagBadge = (protocol: LogPacket['protocol']) => {
     switch (protocol) {
       case 'ESCROW':
-        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+        return 'text-amber-800 bg-amber-50 border-amber-200';
       case 'GEMINI':
-        return 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30';
+        return 'text-zinc-900 bg-zinc-100 border-zinc-300';
       case 'PAYPAL':
-        return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+        return 'text-emerald-800 bg-emerald-50 border-emerald-200';
       case 'TAVILY':
-        return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+        return 'text-blue-800 bg-blue-50 border-blue-200';
       default:
-        return 'text-zinc-400 bg-zinc-800/50 border-zinc-700/50';
+        return 'text-zinc-600 bg-zinc-100 border-zinc-200';
     }
   };
 
+  const latestLog = logs[logs.length - 1];
+
   return (
-    <div className="mt-8 rounded-2xl border border-zinc-800/90 bg-[#06080c] shadow-2xl overflow-hidden font-mono text-xs">
-      {/* Console Top Header */}
-      <div className="px-4 py-2.5 bg-zinc-950/80 border-b border-zinc-800/80 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <div className="flex items-center gap-1.5 text-zinc-300 font-bold text-[11px] tracking-wider uppercase">
-            <Terminal className="h-3.5 w-3.5 text-zinc-400" />
-            <span>Pacta Protocol Stream // Packet Feed</span>
+    <div className="mt-4 rounded-xl border border-[#E5E4DE] bg-white shadow-2xs overflow-hidden font-mono text-xs">
+      {/* Slim 1-Line Collapsible Header Bar */}
+      <div
+        onClick={() => {
+          sound.playClick();
+          setIsCollapsed(!isCollapsed);
+        }}
+        className="px-4 py-2 bg-[#FAF9F6] hover:bg-[#F3F1EC]/70 transition-colors flex items-center justify-between gap-3 cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+          <div className="flex items-center gap-1.5 text-zinc-800 font-bold text-[11px] tracking-wider uppercase shrink-0">
+            <Terminal className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Protocol Telemetry</span>
           </div>
-          <span className="hidden sm:inline-block text-[10px] text-zinc-500 px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800">
-            TLS 1.3 // LIVE
-          </span>
+
+          {isCollapsed && latestLog && (
+            <div className="hidden sm:flex items-center gap-2 min-w-0 flex-1 text-[11px] text-zinc-600 truncate">
+              <span className="text-zinc-300">|</span>
+              <span
+                className={`px-1.5 py-0.2 rounded border text-[9px] font-bold uppercase shrink-0 ${getTagBadge(
+                  latestLog.protocol
+                )}`}
+              >
+                {latestLog.protocol}
+              </span>
+              <span className="truncate text-zinc-600">{latestLog.message}</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              sound.playClick();
-              setIsPaused(!isPaused);
-            }}
-            className={`px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors ${
-              isPaused
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400'
-            }`}
-          >
-            {isPaused ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
-            <span>{isPaused ? 'RESUME' : 'PAUSE'}</span>
-          </button>
+        <div
+          className="flex items-center gap-2 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {!isCollapsed && (
+            <>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setIsPaused(!isPaused);
+                }}
+                className={`px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors cursor-pointer border ${
+                  isPaused
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : 'bg-white hover:bg-zinc-100 text-zinc-600 border-[#E5E4DE]'
+                }`}
+              >
+                {isPaused ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
+                <span>{isPaused ? 'RESUME' : 'PAUSE'}</span>
+              </button>
 
-          <button
-            onClick={() => {
-              sound.playClick();
-              setLogs([]);
-            }}
-            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
-            title="Clear Log"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setLogs([]);
+                }}
+                className="p-1 rounded bg-white hover:bg-zinc-100 border border-[#E5E4DE] text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
+                title="Clear Log"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => {
               sound.playClick();
               setIsCollapsed(!isCollapsed);
             }}
-            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 transition-colors"
+            className="px-2 py-0.5 rounded bg-white hover:bg-zinc-100 border border-[#E5E4DE] text-zinc-600 text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
           >
-            {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+            <span>{isCollapsed ? 'Expand Logs' : 'Collapse'}</span>
+            {isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
           </button>
         </div>
       </div>
 
-      {/* Console Streaming Body */}
+      {/* Expandable Console Streaming Body */}
       {!isCollapsed && (
         <div
           ref={containerRef}
-          className="h-36 sm:h-44 overflow-y-auto p-3 space-y-1 bg-[#05070a]/90 select-text"
+          className="h-36 sm:h-40 overflow-y-auto p-3 space-y-1 bg-[#FCFBF9] border-t border-[#E5E4DE] select-text"
         >
           {logs.length === 0 ? (
-            <div className="text-zinc-600 text-center py-6 text-[11px]">Stream buffer empty. Awaiting packets...</div>
+            <div className="text-zinc-400 text-center py-6 text-[11px]">Stream buffer empty. Awaiting packets...</div>
           ) : (
             logs.map((pkt) => (
               <div
                 key={pkt.id}
-                className="flex items-start gap-2 text-[11px] leading-relaxed hover:bg-zinc-900/40 px-1 py-0.5 rounded transition-colors"
+                className="flex items-start gap-2 text-[11px] leading-relaxed hover:bg-[#F3F1EC] px-1.5 py-0.5 rounded transition-colors"
               >
-                <span className="text-zinc-500 shrink-0">{pkt.time}</span>
+                <span className="text-zinc-400 shrink-0">{pkt.time}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded border text-[9px] font-bold uppercase tracking-wider shrink-0 ${getTagBadge(
                     pkt.protocol
@@ -204,8 +232,8 @@ export default function ProtocolTicker() {
                 >
                   {pkt.protocol}
                 </span>
-                <span className="text-zinc-300 flex-1">{pkt.message}</span>
-                {pkt.hash && <span className="text-zinc-600 text-[10px] shrink-0 hidden md:inline">{pkt.hash}</span>}
+                <span className="text-zinc-800 flex-1">{pkt.message}</span>
+                {pkt.hash && <span className="text-zinc-400 text-[10px] shrink-0 hidden md:inline">{pkt.hash}</span>}
               </div>
             ))
           )}

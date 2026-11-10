@@ -71,3 +71,27 @@ export function getByokHeaders(): Record<string, string> {
 
   return headers;
 }
+
+/**
+ * Returns the live connection status of each service based on stored BYOK credentials.
+ * Used to surface the credential status banner in the UI.
+ */
+export function getConnectionStatus(): {
+  paypal: boolean;
+  gemini: boolean;
+  tavily: boolean;
+  anyLive: boolean;
+  allLive: boolean;
+} {
+  const creds = getStoredCredentials();
+  const paypal = Boolean(creds.paypalClientId && creds.paypalClientSecret);
+  const gemini = Boolean(creds.geminiApiKey);
+  const tavily = Boolean(creds.tavilyApiKey);
+  return {
+    paypal,
+    gemini,
+    tavily,
+    anyLive: paypal || gemini || tavily,
+    allLive: paypal && gemini && tavily,
+  };
+}

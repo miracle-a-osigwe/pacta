@@ -74,7 +74,7 @@ export default function TelemetryCards({ telemetry }: TelemetryCardsProps) {
           <span className="text-xs text-emerald-400 font-medium">Avg Score</span>
         </div>
         <div className="mt-2 text-[11px] text-zinc-400">
-          Gemini 2.5 multimodal inspection
+          Gemini 3.5 multimodal inspection
         </div>
       </div>
 

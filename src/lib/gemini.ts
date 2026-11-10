@@ -119,7 +119,7 @@ Respond with strictly valid JSON in this format:
 }`;
 
       const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -228,7 +228,7 @@ Respond with strictly valid JSON:
 }`;
 
       const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

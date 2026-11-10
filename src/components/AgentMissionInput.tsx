@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, Shield, Send, Loader2, ArrowRight } from 'lucide-react';
+import { Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { Contract } from '@/types';
 import { getByokHeaders } from '@/lib/credentials';
 import { sound } from '@/lib/audio';
@@ -76,27 +76,26 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
   };
 
   const applyPreset = (preset: typeof PRESETS[0]) => {
+    sound.playClick();
     setObjective(preset.objective);
     setCategory(preset.category);
     setTotalBudget(preset.budget);
   };
 
   return (
-    <div className="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 sm:p-8 mb-10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-      <div className="absolute top-0 right-1/4 w-72 h-72 bg-gradient-to-br from-blue-600/10 via-indigo-600/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-
+    <div className="bg-white border border-[#E5E4DE] rounded-2xl p-6 sm:p-8 mb-8 shadow-xs relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="p-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="p-1.5 rounded-lg bg-zinc-900 text-white">
               <Sparkles className="h-4 w-4" />
             </span>
-            <h2 className="text-lg font-semibold text-zinc-100">
+            <h2 className="text-xl font-serif font-bold text-zinc-900">
               Autonomous Agent Procurement Mission
             </h2>
           </div>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-500">
             Command your Buyer Agent to formulate milestones, negotiate terms, and set up PayPal escrow.
           </p>
         </div>
@@ -108,10 +107,10 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
               key={preset.title}
               type="button"
               onClick={() => applyPreset(preset)}
-              className="text-[11px] px-2.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white border border-zinc-700/50 transition-all flex items-center gap-1.5"
+              className="text-[11px] px-3 py-1.5 rounded-full bg-[#FAF9F6] hover:bg-zinc-100 text-zinc-700 hover:text-zinc-900 border border-[#E5E4DE] transition-all flex items-center gap-1.5 cursor-pointer font-medium"
             >
               <span>{preset.title.split(':')[0]}</span>
-              <span className="font-mono text-cyan-400 font-semibold">${preset.budget}</span>
+              <span className="font-mono text-emerald-700 font-bold">${preset.budget}</span>
             </button>
           ))}
         </div>
@@ -120,15 +119,15 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Objective Textarea */}
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-            Mission Objective & Deliverable Scope
+          <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+            Mission Objective &amp; Deliverable Scope
           </label>
           <textarea
             value={objective}
             onChange={(e) => setObjective(e.target.value)}
             rows={3}
             placeholder="e.g. Procure an enterprise security pen-test report for our payment microservice, find vulnerabilities, and create verified pull request..."
-            className="w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/80 transition-all resize-none"
+            className="w-full bg-[#FAF9F6] border border-[#E5E4DE] rounded-xl p-4 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900 transition-all resize-none"
             required
           />
         </div>
@@ -136,22 +135,24 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
         {/* Controls Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Category</label>
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+              Category
+            </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as any)}
-              className="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full bg-[#FAF9F6] border border-[#E5E4DE] rounded-xl px-3 py-2.5 text-xs text-zinc-900 focus:outline-none focus:border-zinc-900"
             >
-              <option value="Security">🛡️ Security & Audits</option>
+              <option value="Security">🛡️ Security &amp; Audits</option>
               <option value="Localization">🌐 App Localization</option>
-              <option value="Engineering">⚙️ Backend & APIs</option>
-              <option value="Data Science">📊 Data & ML Training</option>
-              <option value="Design">🎨 UI/UX & Design</option>
+              <option value="Engineering">⚙️ Backend &amp; APIs</option>
+              <option value="Data Science">📊 Data &amp; ML Training</option>
+              <option value="Design">🎨 UI/UX &amp; Design</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
               Escrow Budget Allocation (USD)
             </label>
             <div className="relative">
@@ -163,7 +164,7 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
                 step={5}
                 value={totalBudget}
                 onChange={(e) => setTotalBudget(Number(e.target.value))}
-                className="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full bg-[#FAF9F6] border border-[#E5E4DE] rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-zinc-900"
                 required
               />
             </div>
@@ -173,7 +174,7 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
             <button
               type="submit"
               disabled={isLoading || !objective.trim()}
-              className="w-full h-[38px] rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-50 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
+              className="w-full h-9.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               {isLoading ? (
                 <>
@@ -182,7 +183,7 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
                 </>
               ) : (
                 <>
-                  <span>Deploy & Negotiate Contract</span>
+                  <span>Deploy &amp; Negotiate Contract</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </>
               )}
@@ -191,7 +192,7 @@ export default function AgentMissionInput({ onContractCreated }: AgentMissionInp
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
             {error}
           </div>
         )}
